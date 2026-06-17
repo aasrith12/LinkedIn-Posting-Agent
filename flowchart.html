@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedIn Auto-Post Agent — Flow Chart</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #161b22 0%, #1c2a3a 100%);
+      border-bottom: 1px solid #30363d;
+      padding: 28px 40px;
+    }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #58a6ff;
+      letter-spacing: -0.3px;
+    }
+    header p {
+      margin-top: 6px;
+      font-size: 0.88rem;
+      color: #8b949e;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      gap: 0;
+      height: calc(100vh - 97px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      overflow-y: auto;
+      padding: 20px 16px;
+    }
+    .sidebar h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #8b949e;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .spec-card {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .spec-card:hover { border-color: #388bfd; }
+    .spec-card .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+    .spec-card .value {
+      font-size: 0.82rem;
+      color: #c9d1d9;
+      line-height: 1.5;
+    }
+    .spec-card .value code {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.78rem;
+      color: #79c0ff;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin: 2px 2px 2px 0;
+    }
+    .tag-blue   { background: #1f3e6b; color: #79c0ff; }
+    .tag-green  { background: #1a3a2a; color: #56d364; }
+    .tag-orange { background: #3d2000; color: #f0883e; }
+    .tag-purple { background: #2d1f4e; color: #bc8cff; }
+    .tag-red    { background: #3d1c1c; color: #ff7b72; }
+
+    /* ── Main chart area ── */
+    .chart-area {
+      flex: 1;
+      overflow: auto;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+      align-self: flex-start;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: #8b949e;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    #diagram {
+      width: 100%;
+      max-width: 900px;
+    }
+    #diagram svg {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 10px;
+    }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position: fixed;
+      background: #1c2a3a;
+      border: 1px solid #388bfd;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #c9d1d9;
+      max-width: 260px;
+      line-height: 1.5;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    #tooltip.visible { opacity: 1; }
+    #tooltip strong { color: #58a6ff; display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LinkedIn Auto-Post Agent</h1>
+  <p>Interactive flow chart &mdash; hover over nodes for details &nbsp;|&nbsp; Built with Python &middot; Claude Sonnet 4.6 &middot; LinkedIn API &middot; APScheduler &middot; SQLite</p>
+</header>
+
+<div class="layout">
+
+  <!-- ── Sidebar specs ── -->
+  <aside class="sidebar">
+    <h2>Tech Stack</h2>
+
+    <div class="spec-card">
+      <div class="label" style="color:#79c0ff">AI / Content</div>
+      <div class="value">
+        <code>claude-sonnet-4-6</code><br/>
+        Anthropic API &middot; <code>max_tokens: 1024</code><br/>
+        RSS feeds &rarr; Claude &rarr; Post
+      </div>
+    </div>
+
+    <div class="spec-card">
+      <div class="label" style="color:#56d364">Scheduler</div>
+      <div class="value">
+        APScheduler <code>BlockingScheduler</code><br/>
+        Timezone: <code>America/Chicago</code> (CST)<br/>
+        3 cron jobs daily
+      </div>
+    </div>
+
+    <div class="spec-card">
+      <div class="label" style="color:#f0883e">LinkedIn API</div>
+      <div class="value">
+        Endpoint: <code>/v2/ugcPosts</code><br/>
+        Auth: Bearer token<br/>
+        Visibility: <code>PUBLIC</code>
+      </div>
+    </div>
+
+    <div class="spec-card">
+      <div class="label" style="color:#bc8cff">Email</div>
+      <div class="value">
+        Send: Gmail SMTP port <code>465</code><br/>
+        Read: Gmail IMAP SSL<br/>
+        Reply keyword: <code>YES</code> or <code>APPROVE</code>
+      </div>
+    </div>
+
+    <div class="spec-card">
+      <div class="label" style="color:#ff7b72">Storage</div>
+      <div class="value">
+        SQLite &middot; <code>posts.db</code><br/>
+        Statuses: <code>pending</code> &rarr; <code>approved</code> / <code>skipped</code> &rarr; <code>posted</code>
+      </div>
+    </div>
+
+    <h2 style="margin-top:18px">Post Guardrails</h2>
+
+    <div class="spec-card">
+      <div class="label" style="color:#ff7b72">Always Enforced</div>
+      <div class="value">
+        <span class="tag tag-green">Under 3000 chars</span>
+        <span class="tag tag-green">First person</span>
+        <span class="tag tag-green">Cited sources</span>
+        <span class="tag tag-red">No NSFW</span>
+        <span class="tag tag-red">No profanity</span>
+        <span class="tag tag-red">No clickbait</span>
+        <span class="tag tag-blue">3–5 hashtags</span>
+        <span class="tag tag-blue">Real news only</span>
+      </div>
+    </div>
+
+    <h2 style="margin-top:18px">RSS Sources</h2>
+
+    <div class="spec-card">
+      <div class="label" style="color:#8b949e">9 Feeds</div>
+      <div class="value">
+        TechCrunch AI &middot; VentureBeat AI<br/>
+        The Verge AI &middot; MIT Tech Review<br/>
+        OpenAI Blog &middot; Google AI Blog<br/>
+        HuggingFace &middot; DeepMind &middot; BAIR
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Flowchart ── -->
+  <main class="chart-area">
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1f6feb"></div>Scheduler / Control</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a7f37"></div>AI / Content</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9a6700"></div>Email</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6e40c9"></div>User Action</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b91c1c"></div>LinkedIn / Storage</div>
+    </div>
+
+    <div id="diagram">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#1f3e6b', 'primaryTextColor': '#e6edf3', 'primaryBorderColor': '#388bfd', 'lineColor': '#8b949e', 'secondaryColor': '#161b22', 'tertiaryColor': '#0d1117', 'edgeLabelBackground':'#161b22', 'fontSize':'14px'}}}%%
+
+flowchart TD
+
+    START(["▶  python main.py"]):::scheduler
+    INIT["APScheduler starts\nTimezone: America/Chicago"]:::scheduler
+    DB["init_db — create posts.db\nif not exists"]:::storage
+
+    START --> INIT --> DB --> LOOP
+
+    LOOP(["⏱  Wait for next trigger"]):::scheduler
+
+    %% ── 9:30 PM Job ──
+    LOOP -->|"9:30 PM CST"| J1
+
+    subgraph J1["  📰  Preview Job — 9:30 PM CST  "]
+      direction TB
+      RSS["Fetch RSS Feeds\n9 AI news sources\n2 articles each"]:::ai
+      CLAUDE["Claude Sonnet 4.6\nPick best story\nGenerate post"]:::ai
+      GUARD["Apply Guardrails\nNo NSFW · No profanity\nCite sources · &lt;3000 chars\n3–5 hashtags"]:::ai
+      SAVE["SQLite — save_draft\nstatus: pending"]:::storage
+      EMAIL["Gmail SMTP port 465\nSend preview email\nto NOTIFY_EMAIL"]:::email
+      RSS --> CLAUDE --> GUARD --> SAVE --> EMAIL
+    end
+
+    %% ── User ──
+    EMAIL --> USER
+    subgraph USER["  👤  User Action  "]
+      direction LR
+      READ["Reads preview\nemail"]:::user
+      REPLY{"Reply\nYES or NO?"}:::user
+      READ --> REPLY
+    end
+
+    %% ── 9:55 AM Job ──
+    LOOP -->|"9:55 AM CST"| J2
+
+    subgraph J2["  📬  Approval Check — 9:55 AM CST  "]
+      direction TB
+      IMAP["Gmail IMAP SSL\nSearch inbox for\nRe: LinkedIn Agent"]:::email
+      DECODE["Decode MIME subject\nCheck body for YES"]:::email
+      CHK{"YES or\nAPPROVE\nfound?"}:::email
+      APPROVE["SQLite — set_status\nstatus: approved"]:::storage
+      SKIP1["SQLite — set_status\nstatus: skipped"]:::storage
+      IMAP --> DECODE --> CHK
+      CHK -->|"Yes"| APPROVE
+      CHK -->|"No / no reply"| SKIP1
+    end
+
+    %% ── 10:00 AM Job ──
+    LOOP -->|"10:00 AM CST"| J3
+
+    subgraph J3["  🚀  Post Job — 10:00 AM CST  "]
+      direction TB
+      QUERY["SQLite — get_pending_post\nquery status = approved"]:::storage
+      CHK2{"Post\napproved?"}:::storage
+      LINKEDIN["LinkedIn UGC Posts API\nPOST /v2/ugcPosts\nVisibility: PUBLIC"]:::linkedin
+      MARK["SQLite — mark_posted\nstatus: posted\nrecord posted_at"]:::storage
+      SKIP2["Log skip\nstatus: skipped"]:::storage
+      QUERY --> CHK2
+      CHK2 -->|"Yes"| LINKEDIN --> MARK
+      CHK2 -->|"No"| SKIP2
+    end
+
+    MARK --> LOOP
+    SKIP2 --> LOOP
+    SKIP1 --> LOOP
+
+    %% ── Styles ──
+    classDef scheduler fill:#1f3e6b,stroke:#388bfd,color:#e6edf3
+    classDef ai       fill:#1a3a2a,stroke:#3fb950,color:#e6edf3
+    classDef email    fill:#3d2000,stroke:#f0883e,color:#e6edf3
+    classDef user     fill:#2d1f4e,stroke:#bc8cff,color:#e6edf3
+    classDef linkedin fill:#4a1515,stroke:#ff7b72,color:#e6edf3
+    classDef storage  fill:#1a2030,stroke:#79c0ff,color:#e6edf3
+      </pre>
+    </div>
+
+  </main>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip"></div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+
+  // Node tooltip data
+  const tips = {
+    'START':    { title: 'Entry Point', body: 'Run: python main.py\nStarts the blocking scheduler. Keep this process alive.' },
+    'INIT':     { title: 'APScheduler', body: 'BlockingScheduler with CST timezone.\nRegisters 3 cron jobs and blocks the main thread.' },
+    'DB':       { title: 'SQLite Init', body: 'Creates posts.db and the posts table if they don\'t exist.\nSafe to call on every startup.' },
+    'LOOP':     { title: 'Scheduler Loop', body: 'APScheduler sleeps until the next trigger.\nNo CPU usage while waiting.' },
+    'RSS':      { title: 'RSS Fetcher', body: '9 feeds · 2 articles each = up to 18 articles.\nLibrary: feedparser.\nSummaries capped at 600 chars each.' },
+    'CLAUDE':   { title: 'Claude Sonnet 4.6', body: 'Model: claude-sonnet-4-6\nmax_tokens: 1024\nPicks the most impactful story and writes the post.' },
+    'GUARD':    { title: 'Guardrails (system prompt)', body: '• Under 3000 characters\n• First person voice\n• Cite at least 1 source URL\n• No NSFW / profanity / clickbait\n• No made-up facts\n• End with 3–5 trending hashtags' },
+    'SAVE':     { title: 'SQLite — save_draft', body: 'Inserts a new row with status="pending".\nReturns the post ID used for the rest of the lifecycle.' },
+    'EMAIL':    { title: 'Gmail SMTP', body: 'Port 465 (SSL).\nSends preview to NOTIFY_EMAIL.\nIncludes post content + character count + reply instructions.' },
+    'READ':     { title: 'You read the email', body: 'Preview arrives at 9:30 PM CST.\nShows the full post, char count, and source URL.' },
+    'REPLY':    { title: 'Your approval', body: 'Reply with YES or APPROVE → post goes live.\nReply NO or don\'t reply → post is skipped for the day.' },
+    'IMAP':     { title: 'Gmail IMAP', body: 'Connects via IMAP4_SSL.\nSearches inbox for emails with "LinkedIn Agent" in subject.' },
+    'DECODE':   { title: 'MIME Decoder', body: 'Gmail encodes non-ASCII subjects (like the — dash).\nemail.header.decode_header() converts it before matching.' },
+    'CHK':      { title: 'Approval check', body: 'Looks for YES or APPROVE (case-insensitive) in the reply body.' },
+    'APPROVE':  { title: 'Approved', body: 'Sets status="approved" in SQLite.\nThe 10 AM job will find this and post.' },
+    'SKIP1':    { title: 'Skipped', body: 'Sets status="skipped".\nNo post today. Agent resumes tomorrow at 9:30 PM.' },
+    'QUERY':    { title: 'SQLite query', body: 'SELECT * FROM posts WHERE status="approved"\nORDER BY created_at DESC LIMIT 1' },
+    'CHK2':     { title: 'Post or skip?', body: 'If an approved post exists → publish it.\nIf nothing is approved → skip silently.' },
+    'LINKEDIN': { title: 'LinkedIn UGC Posts API', body: 'POST /v2/ugcPosts\nAuth: Bearer token\nAuthor: urn:li:person:<your_id>\nVisibility: PUBLIC' },
+    'MARK':     { title: 'mark_posted', body: 'Sets status="posted" and records posted_at timestamp.\nPost is now live on your LinkedIn profile.' },
+    'SKIP2':    { title: 'Skipped (no approval)', body: 'Logs the skip. status remains "skipped".\nHistory is preserved in posts.db.' },
+  };
+
+  const tooltip = document.getElementById('tooltip');
+
+  function showTip(e, key) {
+    const t = tips[key];
+    if (!t) return;
+    tooltip.innerHTML = `<strong>${t.title}</strong>${t.body.replace(/\n/g, '<br>')}`;
+    tooltip.classList.add('visible');
+    moveTip(e);
+  }
+
+  function moveTip(e) {
+    const x = e.clientX + 16;
+    const y = e.clientY + 16;
+    tooltip.style.left = Math.min(x, window.innerWidth - 280) + 'px';
+    tooltip.style.top  = Math.min(y, window.innerHeight - 160) + 'px';
+  }
+
+  function hideTip() { tooltip.classList.remove('visible'); }
+
+  // Attach tooltips after Mermaid renders
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.mermaid [id], .mermaid g[class]').forEach(el => {
+        const id = el.getAttribute('id') || '';
+        const key = id.replace(/^flowchart-/, '').replace(/-\d+$/, '');
+        if (tips[key]) {
+          el.style.cursor = 'help';
+          el.addEventListener('mousemove', e => { showTip(e, key); moveTip(e); });
+          el.addEventListener('mouseleave', hideTip);
+        }
+      });
+    }, 1200);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (tooltip.classList.contains('visible')) moveTip(e);
+  });
+</script>
+
+</body>
+</html>
