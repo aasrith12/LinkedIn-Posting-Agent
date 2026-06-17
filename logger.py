@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = "posts.db"
 
@@ -38,7 +38,7 @@ def init_db() -> None:
 def save_draft(content: str) -> int:
     """Save a newly generated post as 'pending' (awaiting your approval).
     Returns the row id so we can reference this post later."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _get_connection() as conn:
         cursor = conn.execute(
             "INSERT INTO posts (content, status, created_at) VALUES (?, ?, ?)",
@@ -58,7 +58,7 @@ def set_status(post_id: int, status: str) -> None:
 
 def mark_posted(post_id: int) -> None:
     """Mark a post as posted and record the exact timestamp."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _get_connection() as conn:
         conn.execute(
             "UPDATE posts SET status = 'posted', posted_at = ? WHERE id = ?",
