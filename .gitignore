@@ -1,0 +1,13 @@
+# Never commit API keys or secrets
+.env
+
+# SQLite database — local data, not part of the code
+posts.db
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Test/debug scripts
+debug_inbox.py
