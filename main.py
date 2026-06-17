@@ -1,6 +1,7 @@
 import os
 import imaplib
 import smtplib
+import threading
 import email as email_lib
 from email.header import decode_header
 from email.mime.text import MIMEText
@@ -189,9 +190,20 @@ def _now() -> str:
 # It blocks the main thread, so the script won't exit after setup.
 
 if __name__ == "__main__":
-    init_db()  # create posts.db and the table if they don't exist yet
+    init_db()
 
-    scheduler = BlockingScheduler(timezone="America/Chicago")  # CST/CDT handled automatically
+    # Start the Flask dashboard in a background thread so it runs alongside the scheduler.
+    # daemon=True means the thread shuts down automatically when the main process exits.
+    from dashboard import app as flask_app
+    port = int(os.getenv("PORT", 8080))
+    flask_thread = threading.Thread(
+        target=lambda: flask_app.run(host="0.0.0.0", port=port, use_reloader=False),
+        daemon=True,
+    )
+    flask_thread.start()
+    print(f"[{_now()}] Dashboard running on port {port}.")
+
+    scheduler = BlockingScheduler(timezone="America/Chicago")
 
     scheduler.add_job(
         job_generate_and_preview,
