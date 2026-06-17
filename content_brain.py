@@ -16,16 +16,27 @@ def fetch_recent_ai_news(articles_per_feed: int = 2) -> list[dict]:
     articles = []
 
     for url in RSS_FEEDS:
-        feed = feedparser.parse(url)
-        source_name = feed.feed.get("title", url)
+        try:
+            # agent= sets the HTTP User-Agent; request_headers adds a timeout via urllib
+            feed = feedparser.parse(url, agent="LinkedInAgent/1.0", request_headers={"Connection": "close"})
 
-        for entry in feed.entries[:articles_per_feed]:
-            articles.append({
-                "title":   entry.get("title", "").strip(),
-                "summary": entry.get("summary", "")[:600].strip(),  # cap at 600 chars
-                "link":    entry.get("link", ""),
-                "source":  source_name,
-            })
+            if feed.bozo and not feed.entries:
+                # bozo=True means feedparser hit a parse error and got nothing useful
+                print(f"Skipping feed (parse error): {url}")
+                continue
+
+            source_name = feed.feed.get("title", url)
+            for entry in feed.entries[:articles_per_feed]:
+                articles.append({
+                    "title":   entry.get("title", "").strip(),
+                    "summary": entry.get("summary", "")[:600].strip(),
+                    "link":    entry.get("link", ""),
+                    "source":  source_name,
+                })
+        except Exception as e:
+            # One bad feed should never stop the whole job
+            print(f"Skipping feed {url}: {e}")
+            continue
 
     return articles
 

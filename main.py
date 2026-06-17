@@ -125,15 +125,25 @@ def check_inbox_for_approval() -> bool:
 # ─── Scheduled job functions ───────────────────────────────────────────────────
 
 def job_generate_and_preview() -> None:
-    """9:30 PM CST — generate post, save to DB, email you for approval."""
+    """9:30 PM CST — generate post, save to DB, email you for approval.
+    Retries once after 2 minutes if the first attempt fails (e.g. network blip)."""
     print(f"[{_now()}] Generating post preview...")
-    try:
-        content = generate_linkedin_post()
-        post_id = save_draft(content)
-        send_preview_email(content, post_id)
-        print(f"[{_now()}] Post #{post_id} saved as pending. Preview emailed.")
-    except Exception as e:
-        print(f"[{_now()}] ERROR in preview job: {e}")
+
+    for attempt in range(1, 3):  # attempt 1, then attempt 2
+        try:
+            content = generate_linkedin_post()
+            post_id = save_draft(content)
+            send_preview_email(content, post_id)
+            print(f"[{_now()}] Post #{post_id} saved as pending. Preview emailed.")
+            return  # success — exit the retry loop
+        except Exception as e:
+            print(f"[{_now()}] ERROR in preview job (attempt {attempt}/2): {e}")
+            if attempt < 2:
+                import time
+                print(f"[{_now()}] Retrying in 2 minutes...")
+                time.sleep(120)
+
+    print(f"[{_now()}] Preview job failed after 2 attempts. Will try again tomorrow.")
 
 
 def job_check_approval() -> None:
