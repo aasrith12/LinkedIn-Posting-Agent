@@ -126,24 +126,38 @@ def check_inbox_for_approval() -> bool:
 
 def job_generate_and_preview() -> None:
     """9:30 PM CST — generate post, save to DB, email you for approval.
-    Retries once after 2 minutes if the first attempt fails (e.g. network blip)."""
+
+    Retry schedule (5 total attempts):
+      Attempt 1 — immediately at 9:30 PM
+      Attempt 2 — 2 minutes later
+      Attempt 3 — 10 minutes after attempt 2
+      Attempt 4 — 10 minutes after attempt 3
+      Attempt 5 — 10 minutes after attempt 4
+    """
+    import time
+
+    # Delays in seconds BEFORE each retry (index 0 = wait before attempt 2, etc.)
+    retry_delays = [120, 600, 600, 600]
+    max_attempts = len(retry_delays) + 1  # 5 total
+
     print(f"[{_now()}] Generating post preview...")
 
-    for attempt in range(1, 3):  # attempt 1, then attempt 2
+    for attempt in range(1, max_attempts + 1):
         try:
             content = generate_linkedin_post()
             post_id = save_draft(content)
             send_preview_email(content, post_id)
             print(f"[{_now()}] Post #{post_id} saved as pending. Preview emailed.")
-            return  # success — exit the retry loop
+            return  # success — stop retrying
         except Exception as e:
-            print(f"[{_now()}] ERROR in preview job (attempt {attempt}/2): {e}")
-            if attempt < 2:
-                import time
-                print(f"[{_now()}] Retrying in 2 minutes...")
-                time.sleep(120)
+            print(f"[{_now()}] ERROR in preview job (attempt {attempt}/{max_attempts}): {e}")
+            if attempt < max_attempts:
+                wait = retry_delays[attempt - 1]
+                mins = wait // 60
+                print(f"[{_now()}] Retrying in {mins} minute(s)...")
+                time.sleep(wait)
 
-    print(f"[{_now()}] Preview job failed after 2 attempts. Will try again tomorrow.")
+    print(f"[{_now()}] Preview job failed after {max_attempts} attempts. Will try again tomorrow.")
 
 
 def job_check_approval() -> None:
